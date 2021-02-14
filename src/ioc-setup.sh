@@ -87,23 +87,6 @@ function load_ioc_script_name () {
     return $EXIT_CODE
 }
 
-function load_puzzle_maker_prompt_string () {
-    if [ -z "$IOC_PS3" ]; then
-        warning_msg "No default prompt string found. Defaulting to $MD_PS3."
-        return 1
-    fi
-    set_project_prompt "$IOC_PS3"
-    EXIT_CODE=$?
-    if [ $EXIT_CODE -ne 0 ]; then
-        nok_msg "Something went wrong."\
-            "Could not load prompt string ${RED}$IOC_PS3${RESET}."
-    else
-        ok_msg "Successfully loaded"\
-            "prompt string ${GREEN}$IOC_PS3${RESET}"
-    fi
-    return $EXIT_CODE
-}
-
 # SETUP
 
 function illusion_of_control_project_setup () {
@@ -543,15 +526,4 @@ function setup_settings_menu_option_back () {
 }
 
 # CODE DUMP
-
-#   function setup_settings_menu_option_set_ioc_port () {
-#       info_msg "Binding ${CYAN}$SETTINGS_CONTROLLER_LABEL${RESET} option"\
-#           "${YELLOW}Set-IOC-Port${RESET}"\
-#           "to function ${MAGENTA}action_set_ioc_port${RESET}..."
-#       bind_controller_option \
-#           'to_action' "$SETTINGS_CONTROLLER_LABEL" \
-#           "Set-IOC-Port" 'action_set_ioc_port'
-#       return $?
-#   }
-
 
