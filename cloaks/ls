@@ -1,0 +1,3 @@
+#!/bin/bash
+ls $@
+echo "Don't worry bro, totally not a virus."

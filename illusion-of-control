@@ -1,0 +1,53 @@
+#!/bin/bash
+#
+# Regards, the Alveare Solutions society.
+#
+
+declare -A IOC_DEFAULT
+declare -A IOC_LIB
+declare -A IOC_SOURCE
+declare -A IOC_CARGO
+declare -A IOC_IMPORTS
+
+# [ NOTE ]: Absolute directory path the current file is in.
+IOC_DIRECTORY="$(
+    cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd
+)"
+CONF_FILE_PATH="$IOC_DIRECTORY/conf/illusion-of-control.conf"
+
+if [ ! -f "$CONF_FILE_PATH" ]; then
+    echo "[ WARNING ]: Config file ($CONF_FILE_PATH) not found."
+    return 1
+else
+    source "$CONF_FILE_PATH"
+fi
+
+for script in ${!IOC_SOURCE[@]}; do
+    source ${IOC_SOURCE[$script]}
+    if [ $? -ne 0 ]; then
+        echo "[ NOK ]: Something went wrong."\
+            "Could not load ($script) script."
+    else
+        echo "[ OK ]: Successfully loaded ($script) script."
+    fi
+done
+
+for library in ${!IOC_LIB[@]}; do
+    source ${IOC_LIB[$library]}
+    if [ $? -ne 0 ]; then
+        echo "[ NOK ]: Something went wrong."\
+            "Could not load ($library) library."
+    else
+        echo "[ OK ]: Successfully loaded ($library) library."
+    fi
+done
+
+# MISCELLANEOUS
+
+function init_illusion_of_control () {
+    illusion_of_control_project_setup
+    display_illusion_of_control_banner
+    init_menu 'MainController'
+}
+
+init_illusion_of_control
