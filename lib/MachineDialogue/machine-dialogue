@@ -2,6 +2,8 @@
 #
 # Regards, the Alveare Solutions society.
 #
+# Machine Dialogue Framework v2.0
+
 declare -A MD_DEFAULT
 declare -A MD_CONTROLLERS
 declare -A MD_CONTROLLER_BANNERS
@@ -11,6 +13,11 @@ declare -A MD_SOURCE
 declare -A MD_LOGS
 declare -a MD_LOGGING_LEVELS
 declare -a MD_APT_DEPENDENCIES
+declare -A MD_IMPORTS
+declare -A MD_CARGO
+declare -A MD_PAYLOAD
+declare -a MD_PIP_DEPENDENCIES
+declare -a MD_PIP3_DEPENDENCIES
 
 MD_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 

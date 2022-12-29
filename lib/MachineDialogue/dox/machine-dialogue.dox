@@ -1,3 +1,8 @@
-# MachineDialogue - (SETTUP)
+#!/bin/bash
+
+cat<<EOF
+# MachineDialogue - (SETUP)
 
 lock_and_load
+
+EOF

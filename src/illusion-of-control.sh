@@ -2,9 +2,13 @@
 #
 # Regards, the Alveare Solutions society.
 #
-# (I.O.C) Illusion Of Control - v.Cloak&Dagger
+# (I.O.C) Illusion Of Control - v1.0Cloak&Dagger
 
 declare -a BASH_STARTUP_SCRIPTS
+
+SCRIPT_NAME='Illusion Of Control'
+VERSION='Cloak&Dagger'
+VERSION_NO='1.0'
 
 # HOT PARAMETERS
 
@@ -941,9 +945,9 @@ function display_header () {
     echo "
     ___________________________________________________________________________
 
-     *            *           * Illusion Of Control *           *            *
-    ___________________________________________________________________________
-                        Regards, the Alveare Solutions society.
+     *            *           * ${SCRIPT_NAME} *           *            *
+    _____________________________________________________v${VERSION_NO}${VERSION}______
+                Excellent Regards, the Alveare Solutions #!/Society -x
     "
 }
 
@@ -975,30 +979,42 @@ function display_usage () {
     [ USAGE ]: $0 -<command>=<value>
 
     -h    | --help             Display this message.
+
     -c=   | --command=         UNIX command to cloak - default (env).
+
     -o=   | --order=           Order of dagger execution - default (pre-exec).
+
     -e=   | --execute=         Path to dagger file - default
-                               ({path}/{command}.dagger).
+          |                    ({path}/{command}.dagger).
+
     -p=   | --path=            Path to directory holding command cloaks -
-                               default (/.uzr/bin).
+          |                    default (/.uzr/bin).
+
     -t=   | --target=          Specify if target machine is remote or local -
-                               default (local).
+          |                    default (local).
+
     -cnx= | --connection-type= Implies -t=remote. In case target is remote,
-                               specifies the connection protocol - default (raw).
+          |                    specifies the connection protocol - default (raw).
+
     -r=   | --remote=          Implies -t=remote. Specifies connection details
-                               like address, port, user and password.
+          |                    like address, port, user and password.
+
     -s    | --set-path         Implies -p. Sets the spcified directory holding
-                               cloaks to execution path. Automatically cloaks
-                               the env command.
+          |                    cloaks to execution path. Automatically cloaks
+          |                    the env command.
+
     -f    | --force            Forces command by attempting to overcome errors
-                               when encountered. One example would be creating
-                               directories that have been specified but were
-                               not found on the system.
+          |                    when encountered. One example would be creating
+          |                    directories that have been specified but were
+          |                    not found on the system.
+
     -a    | --all              Excludes -c, implies -e. Cloaks all system
-                               commands with given dagger file.
+          |                    commands with given dagger file.
+
     -tmp= | --temporary-file=  Implies -t=remote. Sets temporary file to hide
-                               remote password into, prior to connecting.
-                               Defaults to (/tmp/ioc-cli.tmp)
+          |                    remote password into, prior to connecting.
+          |                    Defaults to (/tmp/ioc-cli.tmp)
+
     -w=   | --wait=            Implies -t=remote. Sets the number of seconds to
                                wait until connection timeout.
 

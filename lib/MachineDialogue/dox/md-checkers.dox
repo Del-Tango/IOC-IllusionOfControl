@@ -1,5 +1,9 @@
+#!/bin/bash
+
+cat<<EOF
 # MachineDialogue - (CHECKERS)
 
+check_fifo_exists                   <named-pipe-path>
 check_apt_dependency_set            <dependancy-package>
 check_required_privileges
 check_function_is_defined           <function-name>
@@ -29,3 +33,17 @@ check_valid_checksum                <type> <checksum-hash>
 check_util_installed                <util-name>
 check_loglevel_set                  <log-level>
 check_item_in_set                   <item> <set-item1> <set-item2> ...
+check_privileged_access
+check_device_exists                 <device-path>
+check_number_is_divisible_by_two    <number>
+check_is_subnet_address             <ipv4-addr-prefix example-(192.168.100)
+check_is_ipv4_address               <ipv4-address>
+check_is_mac_address                <mac-address>
+check_directory_exists              <dir-path>
+check_file_has_number_of_lines      <file-path> <number-of-lines>
+check_internet_access               <remote-server-address>
+check_python3_library_installed     <library>
+check_valid_wireless_interface      <wireless-interface>
+check_essid_password_protected      <essid>
+
+EOF

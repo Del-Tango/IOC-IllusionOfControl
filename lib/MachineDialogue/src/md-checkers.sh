@@ -4,6 +4,172 @@
 #
 # CHECKERS
 
+function check_fifo_exists () {
+    local FIFO_PATH="$1"
+    if [ ! -p "$FIFO_PATH" ]; then
+        return 1
+    fi
+    return 0
+}
+
+function check_valid_wireless_interface () {
+    local WIRELESS_INTERFACE="$1"
+    WIFI_INTERFACES=( `fetch_all_wireless_interfaces` )
+    check_item_in_set "$WIRELESS_INTERFACE" ${WIFI_INTERFACES[@]}
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    return 0
+}
+
+function check_essid_password_protected () {
+    local TARGET_ESSID="$1"
+    for count in `seq 3`; do
+        ENCODED=`display_available_wireless_access_points | \
+            grep "$TARGET_ESSID" | \
+            awk '{print $2}'`
+        case $ENCODED in
+            'on')
+                echo; info_msg "Wireless access point"\
+                    "(${YELLOW}$TARGET_ESSID${RESET})"\
+                    "${GREEN}is password protected${RESET}."
+                return 0
+                ;;
+            'off')
+                echo; info_msg "Wireless access point"\
+                    "(${YELLOW}$TARGET_ESSID${RESET})"\
+                    "${RED}is not password protected${RESET}."
+                return 1
+                ;;
+            *)
+                echo; warning_msg "Could not determine if"\
+                    "${YELLOW}ESSID${RESET} (${RED}$TARGET_ESSID${RESET})"\
+                    "is password protected on try number"\
+                    "(${WHITE}$count${RESET})."
+                ;;
+        esac
+    done
+    error_msg "Something went wrong."\
+        "Could not detemine if ${YELLOW}ESSID${RESET}"\
+        "(${RED}$TARGET_ESSID${RESET}) is password protected."
+    return 2
+}
+
+function check_privileged_access () {
+    if [ $EUID -ne 0 ]; then
+        return 1
+    fi
+    return 0
+}
+
+function check_device_exists () {
+    local DEVICE_PATH="$1"
+    fdisk -l $DEVICE_PATH &> /dev/null
+    return $?
+}
+
+function check_number_is_divisible_by_two () {
+    local NUMBER=$1
+    if (( $NUMBER % 2 == 0 )); then
+        return 0
+    fi
+    return 1
+}
+
+function check_is_subnet_address () {
+    local IPV4_SUBNET="$1"
+    local SUBNET_REGEX_PATTERN='^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$'
+    echo "$IPV4_SUBNET" | egrep -e $SUBNET_REGEX_PATTERN &> /dev/null
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    IFS='.'
+    for octet in $IPV4_SUBNET; do
+        check_value_is_number $octet
+        if [ $? -ne 0 ]; then
+            IFS=' '
+            return 1
+        elif [ $octet -gt 254 ]; then
+            IFS=' '
+            return 1
+        fi
+    done
+    IFS=' '
+    return 0
+}
+
+function check_is_ipv4_address () {
+    local IPV4_ADDRESS="$1"
+    local IPV4_REGEX_PATTERN='^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$'
+    echo "$IPV4_ADDRESS" | egrep -e $IPV4_REGEX_PATTERN &> /dev/null
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    IFS='.'
+    for octet in $IPV4_ADDRESS; do
+        check_value_is_number $octet
+        if [ $? -ne 0 ]; then
+            IFS=' '
+            return 1
+        elif [ $octet -gt 254 ]; then
+            IFS=' '
+            return 1
+        fi
+    done
+    IFS=' '
+    return 0
+}
+
+function check_is_mac_address () {
+    local MAC_ADDRESS="$1"
+    local MAC_REGEX_PATTERN='^([0-9A-Fa-f]{1,2}[:-]){5}([0-9A-Fa-f]{1,2})$'
+    echo "$MAC_ADDRESS" | egrep -e $MAC_REGEX_PATTERN &> /dev/null
+    EXIT_CODE=$?
+    if [ "$EXIT_CODE" -ne 1 ]; then
+        return 0
+    fi
+    return 1
+}
+
+function check_directory_exists () {
+    local DIR_PATH="$1"
+    if [ -d "$DIR_PATH" ]; then
+        return 0
+    fi
+    return 1
+}
+
+function check_file_has_number_of_lines () {
+    local FILE_PATH="$1"
+    local LINE_COUNT=$2
+    check_file_exists "$FILE_PATH"
+    if [ $? -ne 0 ]; then
+        echo; error_msg "File ${RED}$FILE_PATH${RESET} not found."
+        echo; return 2
+    fi
+    check_value_is_number $LINE_COUNT
+    if [ $? -ne 0 ]; then
+        echo; warning_msg "Line count must be a number, not ${RED}$LINE_COUNT${RESET}."
+        echo; return 3
+    fi
+    if [ `cat $FILE_PATH | wc -l` -eq $LINE_COUNT ]; then
+        return 0
+    fi
+    return 1
+}
+
+function check_internet_access () {
+    local ADDRESS="${1:-google.com}"
+    ping -c 1 "$ADDRESS" &> /dev/null
+    return $?
+}
+
+function check_python3_library_installed () {
+    local LIBRARY="$1"
+    python3 -c "import $LIBRARY" &> /dev/null
+    return $?
+}
+
 function check_apt_dependency_set () {
      local APT_DEPENDENCY="$1"
      check_item_in_set "$APT_DEPENDENCY" ${MD_APT_DEPENDENCIES[@]}
@@ -62,8 +228,9 @@ function check_controller_option_exists () {
     VALID_MENU_OPTIONS=(
         `fetch_all_menu_controller_options "$MENU_CONTROLLER_LABEL"`
     )
-    debug_msg "Valid menu options detected:"\
-        "${YELLOW}${VALID_MENU_OPTIONS[@]}${RESET}"
+    # TODO - The following log message may lead to log spam
+#   debug_msg "Valid menu options detected:"\
+#       "${YELLOW}${VALID_MENU_OPTIONS[@]}${RESET}"
     check_item_in_set "$MENU_CONTROLLER_OPTION_LABEL" ${VALID_MENU_OPTIONS[@]}
     EXIT_CODE=$?
     if [ $EXIT_CODE -ne 0 ]; then
@@ -95,8 +262,9 @@ function check_string_matches_regex_pattern () {
 function check_menu_controller_exists () {
     local MENU_CONTROLLER_LABEL="$1"
     VALID_MENU_CONTROLLERS=( `fetch_menu_controllers` )
-    debug_msg "Valid menu controllers detected:"\
-        "${YELLOW}${VALID_MENU_CONTROLLERS[@]}${RESET}"
+    # TODO - The following log message may lead to log spam
+#   debug_msg "Valid menu controllers detected:"\
+#       "${YELLOW}${VALID_MENU_CONTROLLERS[@]}${RESET}"
     check_item_in_set "$MENU_CONTROLLER_LABEL" ${VALID_MENU_CONTROLLERS[@]}
     EXIT_CODE=$?
     if [ $EXIT_CODE -ne 0 ]; then
@@ -112,8 +280,9 @@ function check_menu_controller_exists () {
 function check_valid_action_key () {
     local ACTION_KEY="$1"
     VALID_ACTION_KEYS=( `fetch_action_keys` )
-    debug_msg "Valid action keys detected:"\
-        "${YELLOW}${VALID_ACTION_KEYS[@]}${RESET}"
+    # TODO - The following log message may lead to log spam
+#   debug_msg "Valid action keys detected:"\
+#       "${YELLOW}${VALID_ACTION_KEYS[@]}${RESET}"
     check_item_in_set "$ACTION_KEY" ${VALID_ACTION_KEYS[@]}
     EXIT_CODE=$?
     if [ $EXIT_CODE -ne 0 ]; then

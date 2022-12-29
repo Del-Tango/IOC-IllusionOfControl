@@ -4,6 +4,467 @@
 #
 # FETCHERS
 
+function fetch_number_from_user() {
+    PROMPT_STR="${1:-Number}"
+    INT_DATA=''
+    while :; do
+        INT_DATA=`fetch_data_from_user "$PROMPT_STR"`
+        if [ $? -ne 0 ]; then
+            return 1
+        fi
+        check_value_is_number $INT_DATA
+        if [ $? -ne 0 ]; then
+            debug_msg "Value must be a number, not (${RED}$INT_DATA${RESET})."
+            echo; continue
+        fi; break
+    done
+    echo $INT_DATA
+    return $?
+}
+
+function fetch_password_from_user() {
+    PROMPT_STR="${1:-Password}"
+    PASS_DATA=`fetch_data_from_user "$PROMPT_STR" 'password'`
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    echo $PASS_DATA
+    return $?
+}
+
+function fetch_string_from_user() {
+    PROMPT_STR="${1:-String}"
+    STR_DATA=`fetch_data_from_user "$PROMPT_STR"`
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    echo $STR_DATA
+    return $?
+}
+
+function fetch_directory_from_user() {
+    PROMPT_STR="${1:-DirPath}"
+    DIR_PATH=''
+    while :; do
+        DIR_PATH=`fetch_data_from_user "$PROMPT_STR"`
+        if [ $? -ne 0 ]; then
+            return 1
+        fi
+        check_directory_exists "$DIR_PATH"
+        if [ $? -ne 0 ]; then
+            debug_msg "File (${RED}$DIR_PATH${RESET}) does not exists."
+            continue
+        fi; break
+    done
+    echo $DIR_PATH
+    return $?
+}
+
+function fetch_file_path_from_user() {
+#   [ NOTE ]: Wrapper that also validates the file path.
+    PROMPT_STR="${1:-FilePath}"
+    FILE_PATH=''
+    while :; do
+        FILE_PATH=`fetch_data_from_user "$PROMPT_STR"`
+        if [ $? -ne 0 ]; then
+            return 1
+        fi
+        check_file_exists "$FILE_PATH"
+        if [ $? -ne 0 ]; then
+            warning_msg "File (${RED}$FILE_PATH${RESET}) does not exists.
+            "
+            continue
+        fi; break
+    done
+    echo $FILE_PATH
+    return $?
+}
+
+function fetch_all_available_block_devices () {
+    AVAILABLE_DEVS=(
+        `lsblk | \
+        grep -e '^[a-z].*' -e 'disk' | \
+        awk '{print $1}' | \
+        sed 's:^:/dev/:g'`
+    )
+    if [ ${#AVAILABLE_DEVS[@]} -eq 0 ]; then
+        error_msg "Could not detect any devices connected to machine."
+        return 1
+    fi
+    echo "${AVAILABLE_DEVS[@]}"
+    return 0
+}
+
+function fetch_all_directory_files () {
+    local DIR_PATH="$1"
+    local DIRECTORY_FILE_PATHS=()
+    for discovered_path in `find "$DIR_PATH"`; do
+        if [[ "$discovered_path" == "$DIR_PATH" ]]; then
+            continue
+        fi
+        DIRECTORY_FILE_PATHS=( ${DIRECTORY_FILE_PATHS[@]} "$discovered_path" )
+    done
+    echo ${DIRECTORY_FILE_PATHS[@]}
+    return 0
+}
+
+function fetch_file_name_from_path () {
+    local FILE_PATH="$1"
+    basename "$FILE_PATH"
+    return $?
+}
+
+function fetch_directory_from_file_path () {
+    local FILE_PATH="$1"
+    dirname "$FILE_PATH"
+    return $?
+}
+
+function fetch_alive_lan_machines_ipv4_addresses () {
+    LAN_SCAN=`lan_scan`
+    IPV4_ADDRESSES=( `echo "$LAN_SCAN" | awk '{print $1}'` )
+    echo ${IPV4_ADDRESSES[@]}
+    return 0
+}
+
+function fetch_alive_lan_machines_mac_addresses () {
+    LAN_SCAN=`lan_scan`
+    MAC_ADDRESSES=( `echo "$LAN_SCAN" | awk '{print $2}'` )
+    echo ${MAC_ADDRESSES[@]}
+    return 0
+}
+
+function fetch_all_wireless_interfaces () {
+    WIFI_INTERFACES=( `iw dev | grep Interface | awk '{print $NF}'` )
+    if [ ${#WIFI_INTERFACES[@]} -eq 0 ]; then
+        return 1
+    fi
+    echo ${WIFI_INTERFACES[@]}
+    return 0
+}
+
+function fetch_currently_connected_gateway_essid () {
+    CURRENT_ESSID=`iwgetid | sed 's/\"//g' | cut -d ':' -f 2`
+    if [ -z "$CURRENT_ESSID" ]; then
+        return 1
+    fi
+    echo "$CURRENT_ESSID"
+    return 0
+}
+
+function fetch_checksum_algorithm_labels () {
+    if [ ${#MD_CHECKSUM_ALGORITHMS[@]} -eq 0 ]; then
+        echo; error_msg "No checksum algorithms set."
+        return 1
+    fi
+    echo "${!MD_CHECKSUM_ALGORITHMS[@]}"
+    return $?
+}
+
+function fetch_wireless_gateway_channel_by_interface () {
+    WIRELESS_INTERFACE="$1"
+    RADIO_CHANNEL=`iwlist $WIRELESS_INTERFACE scan | \
+        grep Channel: | \
+        cut -d':' -f 2 | \
+        head -n 1`
+    if [ -z "$RADIO_CHANNEL" ]; then
+        return 1
+    fi
+    echo $RADIO_CHANNEL
+    return 0
+}
+
+function fetch_wireless_gateway_bssid () {
+    WIRELESS_INTERFACE=`fetch_wireless_interface`
+    if [ $? -ne 0 ]; then
+        return 2
+    fi
+    ROUTER_BSSID=`iwlist "$WIRELESS_INTERFACE" scan | \
+        grep 'Address' | \
+        awk '{print $NF}' | \
+        head -n 1`
+    if [ -z "$ROUTER_BSSID" ]; then
+        return 1
+    fi
+    echo $ROUTER_BSSID
+    return 0
+}
+
+function fetch_wireless_interface () {
+    WIRELESS_INTERFACE=`iwgetid | awk '{print $1}' | head -n 1`
+    if [ -z "$WIRELESS_INTERFACE" ]; then
+        return 1
+    fi
+    echo $WIRELESS_INTERFACE
+    return 0
+}
+
+function fetch_wireless_interface_from_user () {
+    local PROMPT_STRING="${1:-WiFiInterface}"
+    while :
+    do
+        WIRELESS_INTERFACE=`fetch_data_from_user "$PROMPT_STRING"`
+        if [ $? -ne 0 ]; then
+            echo; info_msg "Aborting action."
+            echo; return 1
+        fi
+        CHECK_VALID=`check_valid_wireless_interface "$WIRELESS_INTERFACE"`
+        if [ $? -ne 0 ]; then
+            echo; warning_msg "Invalid wireless interface"\
+                "${RED}$WIRELESS_INTERFACE${RESET}."
+            continue
+        fi
+        break
+    done
+    echo "$WIRELESS_INTERFACE"
+    return 0
+}
+
+function fetch_external_ipv4_address () {
+    check_internet_access "${MD_DEFAULT['check-internet-access']}"
+    if [ $? -ne 0 ]; then
+        warning_msg "No internet access!"
+        return 1
+    fi
+    curl whatismyip.akamai.com 2> /dev/null
+    return $?
+}
+
+function fetch_local_ipv4_address () {
+    hostname -I | cut -d' ' -f1
+    return $?
+}
+
+function fetch_all_directory_content () {
+    local DIRECTORY_PATH="$1"
+    check_directory_exists "$DIRECTORY_PATH"
+    if [ $? -ne 0 ]; then
+        error_msg "Directory (${RED}$DIRECTORY_PATH${RESET}) not found."
+        return 1
+    fi
+    ls -1 "$DIRECTORY_PATH"
+    return $?
+}
+
+function fetch_file_size_in_bytes () {
+    local FILE_PATH="$1"
+    BYTES=`ls -la "$FILE_PATH" | awk '{print $5}'`
+    echo $BYTES
+    return 0
+}
+
+function fetch_all_bios_data () {
+    dmidecode -t bios
+    return $?
+}
+
+function fetch_all_system_data () {
+    dmidecode -t system
+    return $?
+}
+
+function fetch_all_baseboard_data () {
+    dmidecode -t baseboard
+    return $?
+}
+
+function fetch_all_chassis_data () {
+    dmidecode -t chassis
+    return $?
+}
+
+function fetch_all_processor_data () {
+    dmidecode -t processor
+    return $?
+}
+
+function fetch_all_memory_data () {
+    dmidecode -t memory
+    return $?
+}
+
+function fetch_block_devices () {
+    BLOCK_DEVICES=(
+        `lsblk | grep -e disk | sed 's/^/\/dev\//g' | awk '{print $1}'`
+    )
+    echo ${BLOCK_DEVICES[@]}
+    return 0
+}
+
+function fetch_file_size_in_bytes () {
+    local FILE_PATH="$1"
+    if [ ! -f "$FILE_PATH" ]; then
+        touch $FILE_PATH
+    fi
+    BYTES=`ls -la "$FILE_PATH" | awk '{print $5}'`
+    echo $BYTES
+    return 0
+}
+
+function fetch_device_size () {
+    local TARGET_DEVICE="$1"
+    check_device_exists $TARGET_DEVICE
+    if [ $? -ne 0 ]; then
+        warning_msg "Device $TARGET_DEVICE not found."
+        return 2
+    fi
+    local SIZE=`lsblk -bo NAME,SIZE "$TARGET_DEVICE" | \
+        grep -e '^[a-z].*' | \
+        awk '{print $NF}'`
+    if [ -z "$SIZE" ]; then
+        return 1
+    fi
+    echo "$SIZE"
+    return 0
+}
+
+function fetch_wireless_password_from_user () {
+    local PROMPT_STRING="${1:-Password}"
+    echo; info_msg "Type wifi ${YELLOW}Password${RESET}"\
+        "or ${MAGENTA}.back${RESET}."
+    while :
+    do
+        ESSID_PASSWORD=`fetch_data_from_user "$PROMPT_STRING" "password"`
+        if [ $? -ne 0 ]; then
+            echo; info_msg "Aborting action."
+            echo; return 1
+        fi
+        echo "$ESSID_PASSWORD"
+        break
+    done
+    return 0
+}
+
+function fetch_available_wireless_access_point_essid_set () {
+    ESSID_SET=(
+        `display_available_wireless_access_points | \
+            egrep -e '[0-9]{2}/[0-9]{2}' | awk '{print $3}' | \
+            sed 's/\"//g'`
+    )
+    if [ ${#ESSID_SET[@]} -eq 0 ]; then
+        echo; warning_msg "No available wireless access points found."
+        return 1
+    fi
+    echo ${ESSID_SET[@]}
+    return 0
+}
+
+function fetch_wireless_essid_from_user () {
+    AVAILABLE_ESSID=( `fetch_available_wireless_access_point_essid_set` )
+    echo; TARGET_ESSID=`fetch_selection_from_user \
+        "${MAGENTA}ESSID${RESET}" ${AVAILABLE_ESSID[@]}`
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    echo "$TARGET_ESSID"
+    return 0
+}
+
+function fetch_file_length () {
+    local FILE_PATH="$1"
+    check_file_exists "$FILE_PATH"
+    if [ $? -ne 0 ]; then
+        echo; error_msg "File (${RED}$FILE_PATH${RESET}) not found."
+        return 1
+    fi
+    cat $FILE_PATH | wc -l
+    return $?
+}
+
+function fetch_single_port_number_from_user () {
+    local PROMPT_STRING="${1:-TargetPort}"
+    while :
+    do
+        PORT_NUMBER=`fetch_data_from_user "$PROMPT_STRING"`
+        if [ $? -ne 0 ]; then
+            echo; info_msg "Aborting action."
+            echo; return 1
+        fi
+        CHECK_VALID=`check_value_is_number "$PORT_NUMBER"`
+        if [ $? -ne 0 ]; then
+            echo; warning_msg "Invalid machine port number"\
+                "${RED}$PORT_NUMBER${RESET}."
+            continue
+        fi
+        echo $PORT_NUMBER
+        break
+    done
+    return 0
+}
+
+function fetch_ipv4_address_from_user () {
+    local PROMPT_STRING="${1:-IPv4Address}"
+    while :
+    do
+        IPV4_ADDRESS=`fetch_data_from_user "$PROMPT_STRING"`
+        if [ $? -ne 0 ]; then
+            echo; info_msg "Aborting action."
+            echo; return 1
+        fi
+        CHECK_VALID=`check_is_ipv4_address "$IPV4_ADDRESS"`
+        if [ $? -ne 0 ]; then
+            echo; warning_msg "Invalid IPv4 address"\
+                "${RED}$IPV4_ADDRESS${RESET}."
+            continue
+        fi
+        echo "$IPV4_ADDRESS"
+        break
+    done
+    return 0
+}
+
+function fetch_router_bssid_from_user () {
+    local PROMPT_STRING="${1:-BSSID}"
+    while :
+    do
+        BSSID=`fetch_data_from_user "$PROMPT_STRING"`
+        if [ $? -ne 0 ]; then
+            echo; info_msg "Aborting action."
+            echo; return 1
+        fi
+        echo "$BSSID"
+        break
+    done
+    return 0
+}
+
+function fetch_wireless_gateway_channel_from_user () {
+    local PROMPT_STRING="${1:-Channel}"
+    while :
+    do
+        CHANNEL_NUMBER=`fetch_data_from_user "$PROMPT_STRING"`
+        if [ $? -ne 0 ]; then
+            echo; info_msg "Aborting action."
+            echo; return 1
+        fi
+        echo "$CHANNEL_NUMBER"
+        break
+    done
+    return 0
+}
+
+function fetch_mac_address_from_user () {
+    local PROMPT_STRING="${1:-MACAddress}"
+    while :
+    do
+        MAC_ADDRESS=`fetch_data_from_user "$PROMPT_STRING"`
+        if [ $? -ne 0 ]; then
+            echo; info_msg "Aborting action."
+            echo; return 1
+        fi
+        CHECK_VALID=`check_is_mac_address "$MAC_ADDRESS"`
+        if [ $? -ne 0 ]; then
+            fetch_ultimatum_from_user "Do you wish to continue? ${YELLOW}Y/N${RESET}"
+            if [ $? -ne 0 ]; then
+                echo; info_msg "Aborting action."
+                echo; return 1
+            fi
+        fi
+        echo "$MAC_ADDRESS"; break
+    done
+    return 0
+}
+
 function fetch_data_from_user () {
     local PROMPT="$1"
     local OPTIONAL="${@:2}"
@@ -70,9 +531,10 @@ function fetch_selection_from_user () {
 }
 
 function fetch_menu_controllers_with_extended_banner () {
-    debug_msg "Detected (${WHITE}${#MD_CONTROLLER_BANNERS[@]}${RESET})"\
-        "controllers with extended banners:"\
-        "${YELLOW}${!MD_CONTROLLER_BANNERS[@]}${RESET}"
+    # TODO - Following log message may lead to log spam
+#   debug_msg "Detected (${WHITE}${#MD_CONTROLLER_BANNERS[@]}${RESET})"\
+#       "controllers with extended banners:"\
+#       "${YELLOW}${!MD_CONTROLLER_BANNERS[@]}${RESET}"
     echo ${!MD_CONTROLLER_BANNERS[@]}
     return $?
 }
@@ -113,8 +575,9 @@ function fetch_jump_keys () {
 }
 
 function fetch_action_keys () {
-    debug_msg "Detected (${WHITE}${#MD_CONTROLLER_OPTION_KEYS[@]}${RESET})"\
-        "option keys: ${YELLOW}${!MD_CONTROLLER_OPTION_KEYS[@]}${RESET}."
+    # TODO - Following log message may lead to log spam
+#   debug_msg "Detected (${WHITE}${#MD_CONTROLLER_OPTION_KEYS[@]}${RESET})"\
+#       "option keys: ${YELLOW}${!MD_CONTROLLER_OPTION_KEYS[@]}${RESET}."
     if [ ${#MD_CONTROLLER_OPTION_KEYS[@]} -eq 0 ]; then
         error_msg "No ${BLUE}$SCRIPT_NAME${RESET}"\
             "${RED}action keys${RESET} found."
@@ -129,8 +592,9 @@ function fetch_all_menu_controller_options () {
     CONTROLLER_OPTIONS=(
         `echo "${MD_CONTROLLER_OPTIONS[$MENU_CONTROLLER_LABEL]}" | tr ',' ' '`
     )
-    debug_msg "Controller: ${CYAN}$MENU_CONTROLLER_LABEL${RESET},"\
-        "Options: ${YELLOW}${CONTROLLER_OPTIONS[@]}${RESET}."
+    # TODO - Following log message may lead to log spam
+#   debug_msg "Controller: ${CYAN}$MENU_CONTROLLER_LABEL${RESET},"\
+#       "Options: ${YELLOW}${CONTROLLER_OPTIONS[@]}${RESET}."
     echo "${CONTROLLER_OPTIONS[@]}"
     return $?
 }
