@@ -39,7 +39,7 @@ function action_set_ioc_path_directory () {
         echo
         if [ $EXIT_CODE -ne 0 ]; then
             info_msg "Aborting action."
-            return 1
+            return 0
         fi
         if [[ "${MD_DEFAULT['target']}" == 'local' ]]; then
             check_directory_exists "$DIR_PATH"
@@ -69,7 +69,7 @@ function action_set_ioc_order () {
     ORDER=`fetch_selection_from_user "CloakOrder" "${CLOAK_ORDER_OPTIONS[@]}"`
     if [ $? -ne 0 ]; then
         echo; info_msg "Aborting action."
-        return 1
+            return 0
     fi
     echo; set_ioc_cloak_order "$ORDER"
     EXIT_CODE=$?
@@ -114,7 +114,7 @@ function action_interactive_raw_socket_session () {
     if [ $? -ne 0 ]; then
         info_msg "Target machine (${RED}$ADDR${RESET}) is offline."\
             "Aborting action."
-        return 1
+            return 0
     else
         info_msg "Target machine (${GREEN}$ADDR${RESET}) is online."
     fi
@@ -161,7 +161,7 @@ function action_set_connection_timeout () {
         TIMEOUT_SECONDS=`fetch_data_from_user 'CnxTimeout'`
         if [ $? -ne 0 ]; then
             echo; info_msg "Aborting action."
-            return 1
+            return 0
         fi
         check_value_is_number $TIMEOUT_SECONDS
         if [ $? -ne 0 ]; then
@@ -192,7 +192,7 @@ function action_import_command_file () {
         echo
         if [ $EXIT_CODE -ne 0 ]; then
             info_msg "Aborting action."
-            return 1
+            return 0
         fi
         check_file_exists "$FILE_PATH"
         if [ $? -ne 0 ]; then
@@ -246,7 +246,7 @@ function action_set_connection_details () {
         PORT=`fetch_data_from_user 'Port'`
         if [ $? -ne 0 ]; then
             echo; info_msg "Aborting action."
-            return 1
+            return 0
         fi
         check_value_is_number $PORT
         if [ $? -ne 0 ]; then
@@ -258,20 +258,20 @@ function action_set_connection_details () {
     ADDR="`fetch_data_from_user 'Address'`"
     if [ $? -ne 0 ]; then
         echo; info_msg "Aborting action."
-        return 1
+        return 0
     fi
     if [[ "${MD_DEFAULT['conn-type']}" == 'ssh' ]]; then
         echo; info_msg "Type remote user name or (${MAGENTA}.back${RESET})."
         USER="`fetch_data_from_user 'User'`"
         if [ $? -ne 0 ]; then
             echo; info_msg "Aborting action."
-            return 1
+            return 0
         fi
         echo; info_msg "Type remote user password or (${MAGENTA}.back${RESET})."
         PASS="`fetch_data_from_user 'Password'`"
         if [ $? -ne 0 ]; then
             echo; info_msg "Aborting action."
-            return 1
+            return 0
         fi
     fi
     CONNECTION_DETAILS="$USER@$ADDR:$PORT:$PASS"
@@ -295,7 +295,7 @@ function action_set_connection_type () {
     CONNECTION_TYPE=`fetch_selection_from_user "Connection" ${CONNECTION_VALUES[@]}`
     if [ $? -ne 0 ]; then
         echo; info_msg "Aborting action."
-        return 1
+        return 0
     fi
     echo; set_ioc_connection_type "$CONNECTION_TYPE"
     EXIT_CODE=$?
@@ -317,7 +317,7 @@ function action_set_target () {
     TARGET_TYPE=`fetch_selection_from_user "Target" ${TARGET_VALUES[@]}`
     if [ $? -ne 0 ]; then
         echo; info_msg "Aborting action."
-        return 1
+        return 0
     fi
     echo; set_ioc_target_type "$TARGET_TYPE"
     EXIT_CODE=$?
@@ -338,7 +338,7 @@ function action_set_command () {
         COMMAND=`fetch_data_from_user 'Command'`
         if [ $? -ne 0 ]; then
             echo; info_msg "Aborting action."
-            return 1
+            return 0
         fi; echo
         if [[ "${MD_DEFAULT['target']}" == 'remote' ]]; then
             info_msg "Target is (${MAGENTA}${MD_DEFAULT['target']}${RESET})."\
@@ -373,7 +373,7 @@ function action_set_dagger_file_path () {
         FILE_PATH=`fetch_data_from_user 'FilePath'`
         if [ $? -ne 0 ]; then
             echo; info_msg "Aborting action."
-            return 1
+            return 0
         fi
         check_file_exists "$FILE_PATH"
         if [ $? -ne 0 ]; then
@@ -400,7 +400,7 @@ function action_install_dependencies () {
     fetch_ultimatum_from_user "Are you sure about this? ${YELLOW}Y/N${RESET}"
     if [ $? -ne 0 ]; then
         echo; info_msg "Aborting action."
-        return 1
+        return 0
     fi
     apt_install_dependencies
     return $?
@@ -413,7 +413,7 @@ function action_set_temporary_file () {
         FILE_PATH=`fetch_data_from_user 'FilePath'`
         if [ $? -ne 0 ]; then
             echo; info_msg "Aborting action."
-            return 1
+            return 0
         fi
         check_file_exists "$FILE_PATH"
         if [ $? -ne 0 ]; then
@@ -438,7 +438,7 @@ function action_set_safety_on () {
     fetch_ultimatum_from_user "${YELLOW}Y/N${RESET}"
     if [ $? -ne 0 ]; then
         echo; info_msg "Aborting action."
-        return 1
+        return 0
     fi
     set_safety 'on'
     EXIT_CODE=$?
@@ -458,6 +458,7 @@ function action_set_safety_off () {
     fetch_ultimatum_from_user "${YELLOW}Y/N${RESET}"
     if [ $? -ne 0 ]; then
         echo; info_msg "Aborting action."
+        return 0
     fi
     set_safety 'off'
     EXIT_CODE=$?
@@ -479,7 +480,7 @@ function action_set_log_file () {
         FILE_PATH=`fetch_data_from_user 'FilePath'`
         if [ $? -ne 0 ]; then
             echo; info_msg "Aborting action."
-            return 1
+            return 0
         fi
         check_file_exists "$FILE_PATH"
         if [ $? -ne 0 ]; then
@@ -507,7 +508,7 @@ function action_set_log_lines () {
         LOG_LINES=`fetch_data_from_user 'LogLines'`
         if [ $? -ne 0 ]; then
             echo; info_msg "Aborting action."
-            return 1
+            return 0
         fi
         check_value_is_number $LOG_LINES
         if [ $? -ne 0 ]; then
@@ -536,7 +537,7 @@ function action_set_file_editor () {
         FILE_EDITOR=`fetch_data_from_user 'Editor'`
         if [ $? -ne 0 ]; then
             echo; info_msg "Aborting action."
-            return 1
+            return 0
         fi
         check_util_installed "$FILE_EDITOR"
         if [ $? -ne 0 ]; then
