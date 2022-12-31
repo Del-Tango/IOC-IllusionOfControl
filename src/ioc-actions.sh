@@ -4,6 +4,36 @@
 #
 # ACTIONS
 
+function action_start_ioc_assault () {
+    ADDR=`fetch_remote_address_from_connection_details "${MD_DEFAULT['conn-details']}"`
+    PORT=`fetch_remote_port_from_connection_details "${MD_DEFAULT['conn-details']}"`
+    echo; info_msg "Starting IOC assault on ($ADDR) using port ($PORT)."\
+        "Press (${MAGENTA}Ctrl-C${RESET}) to terminate before completion.
+        "
+    COMMAND_STRING=`format_illusion_of_control_command_string`
+    if [ $? -ne 0 ]; then
+        echo; error_msg "Something went wrong."\
+            "Could not format illusion of control command string."\
+            "Details: ($COMMAND_STRING)"
+        return 1
+    fi
+    check_safety_on
+    if [ $? -eq 0 ]; then
+        warning_msg "Safety is (${GREEN}ON${RESET})."\
+            "IOC assault is not beeing performed."
+        return 2
+    fi
+    fetch_ultimatum_from_user "Are you sure about this? ${YELLOW}Y/N${RESET}"
+    if [ $? -ne 0 ]; then
+        echo; info_msg "Aborting action."
+        return 0
+    fi
+    trap "echo; done_msg 'Terminating IOC assault.' || true" INT
+    ${IOC_CARGO['illusion-of-control']} $COMMAND_STRING
+    trap - INT || true
+    return $?
+}
+
 function action_edit_command_file () {
     local FILE_PATH="${IOC_IMPORTS['command-file']}"
     echo
@@ -80,31 +110,6 @@ function action_set_ioc_order () {
         ok_msg "Successfully set IOC cloak order to (${GREEN}$ORDER${RESET})"
     fi
     return $EXIT_CODE
-}
-
-function action_start_ioc_assault () {
-    ADDR=`fetch_remote_address_from_connection_details "${MD_DEFAULT['conn-details']}"`
-    PORT=`fetch_remote_port_from_connection_details "${MD_DEFAULT['conn-details']}"`
-    echo; info_msg "Starting IOC assault on ($ADDR) using port ($PORT)."\
-        "Press (${MAGENTA}Ctrl-C${RESET}) to terminate before completion.
-        "
-    COMMAND_STRING=`format_illusion_of_control_command_string`
-    if [ $? -ne 0 ]; then
-        echo; error_msg "Something went wrong."\
-            "Could not format illusion of control command string."\
-            "Details: ($COMMAND_STRING)"
-        return 1
-    fi
-    check_safety_on
-    if [ $? -eq 0 ]; then
-        warning_msg "Safety is (${GREEN}ON${RESET})."\
-            "IOC assault is not beeing performed."
-        return 2
-    fi
-    trap "echo; done_msg 'Terminating IOC assault.' || true" INT
-    ${IOC_CARGO['illusion-of-control']} $COMMAND_STRING
-    trap - INT || true
-    return $?
 }
 
 function action_interactive_raw_socket_session () {
