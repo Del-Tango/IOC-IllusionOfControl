@@ -314,6 +314,7 @@ function setup_log_viewer_menu_option_back () {
 function setup_settings_menu_controller () {
     setup_settings_menu_option_set_safety_off
     setup_settings_menu_option_set_safety_on
+    setup_settings_menu_option_set_sudo_flag
     setup_settings_menu_option_set_command
     setup_settings_menu_option_set_ioc_target
     setup_settings_menu_option_set_connection_type
@@ -334,6 +335,16 @@ function setup_settings_menu_controller () {
     done_msg "${CYAN}$SETTINGS_CONTROLLER_LABEL${RESET} controller option"\
         "binding complete."
     return 0
+}
+
+function setup_settings_menu_option_set_sudo_flag () {
+    info_msg "Binding ${CYAN}$SETTINGS_CONTROLLER_LABEL${RESET} option"\
+        "${YELLOW}Set-SUDO-Flag${RESET}"\
+        "to function ${MAGENTA}action_set_sudo_flag${RESET}..."
+    bind_controller_option \
+        'to_action' "$SETTINGS_CONTROLLER_LABEL" \
+        "Set-SUDO-Flag" 'action_set_sudo_flag'
+    return $?
 }
 
 function setup_settings_menu_option_set_dagger_file () {

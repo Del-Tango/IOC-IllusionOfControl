@@ -1,0 +1,89 @@
+#!/usr/bin/expect
+#
+# Regards, the Alveare Solutions #!/Society -x
+#
+# SSH INSTRUCTION HANDLER
+
+if { [lindex $argv 0] == "--help" } {
+    puts "
+    ___________________________________________________________________________
+
+     *                           *  SSH Command  *                           *
+    ___________________________________________________v2.1ImpulseCMD__________
+               Excellent Regards, the Alveare Solutions #!/Society -x
+
+    \[ EXIT \]: Codes -
+        0 - All good.
+        1 - Connection to target timed out.
+        2 - Invalid credentials (password/account).
+        3 - Connection to target failed.
+        4 - Command timeout.
+        5 - Command failure.
+
+    \[ USAGE \]: ./ssh-command.exp <user> <ipv4-addr> <port-no> <password> <instruction>
+
+    \[ EXAMPLE \]: ./ssh-command.exp ghost 127.0.0.1 22 ghost 'sudo ls'
+    "
+    exit 0
+}
+
+set timeout 20
+set prompt "\[#$%>\]"
+
+set user [lindex $argv 0]
+set ipaddr [lindex $argv 1]
+set port [lindex $argv 2]
+set password [lindex $argv 3]
+set command [lindex $argv 4]
+
+spawn ssh $user@$ipaddr -p $port -y
+match_max 100000
+
+expect {
+    timeout {
+        send_user "Connection to $ipaddr timed out!\n"
+        exit 1
+    } "yes/no" {
+        send "yes\n"
+        exp_continue
+    } "*?assword:*" {
+        send -- "$password\n"
+    } incorrect {
+        send_user "Invalid password or account\n"
+        exit 2
+    } eof {
+        send_user "Connection to $ipaddr failed!\n"
+        exit 3
+    }
+}
+
+expect {
+    -glob "${prompt}" {
+        send "$command\n"
+    } timeout {
+        send_user "Connection to $ipaddr timed out when issuing command! ($command)\n"
+        exit 4
+    } eof {
+        send_user "Connection to $ipaddr failed when issuing command! ($command)\n"
+        exit 5
+    }
+}
+
+if {[regexp -nocase "sudo" $command]} {
+    puts "Super user privileges required!"
+    expect "*password for ${user}*" {
+        send -- "${password}\n";
+    }
+}
+
+expect {
+    -glob "${prompt}" {
+        send "exit\n"
+    } timeout {
+        exit 4
+    }
+}
+
+expect eof
+
+exit 0

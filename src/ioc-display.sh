@@ -14,9 +14,14 @@ function display_illusion_of_control_hot_banner () {
     [ ${CYAN}Conn Type${RESET}       ]: ${MAGENTA}${MD_DEFAULT['conn-type']}${RESET}
     [ ${CYAN}Conn Timeout${RESET}    ]: ${WHITE}${MD_DEFAULT['conn-timeout']}${RESET}
     [ ${CYAN}Conn Details${RESET}    ]: ${GREEN}${MD_DEFAULT['conn-details']}${RESET}
-    [ ${CYAN}PATH Setup${RESET}      ]: ${MD_DEFAULT['setup-path']}
-    [ ${CYAN}Force Command${RESET}   ]: ${MD_DEFAULT['force-cmd']}
+    [ ${CYAN}Setup PATH${RESET}      ]: `format_flag_colors ${MD_DEFAULT['setup-path']}`
+    [ ${CYAN}Force Command${RESET}   ]: `format_flag_colors ${MD_DEFAULT['force-cmd']}`
+    [ ${CYAN}SUDO${RESET}            ]: `format_flag_colors ${MD_DEFAULT['sudo-flag']}`
     [ ${CYAN}Temporary File${RESET}  ]: ${YELLOW}${MD_DEFAULT['tmp-file']}${RESET}"
+    if [[ "${MD_DEFAULT['sudo-flag']}" == 'on' ]]; then
+        echo "
+    [ ${RED}WARNING${RESET} ]: SUDO flag is ${GREEN}ON${RESET}! Watch your step -"
+    fi
     return $?
 }
 
@@ -39,12 +44,12 @@ function display_illusion_of_control_banner () {
 }
 
 function display_ioc_settings () {
-    echo "[ ${CYAN}Conf File${RESET}              ]: ${YELLOW}${MD_DEFAULT['conf-file']}${RESET}
-[ ${CYAN}Log File${RESET}               ]: ${YELLOW}${MD_DEFAULT['log-file']}${RESET}
-[ ${CYAN}Dagger File${RESET}            ]: ${YELLOW}${MD_DEFAULT['dgr-file']}${RESET}
-[ ${CYAN}Temporary File${RESET}         ]: ${YELLOW}${MD_DEFAULT['tmp-file']}${RESET}
-[ ${CYAN}Default Command File${RESET}   ]: ${YELLOW}${MD_DEFAULT['cmd-file']}${RESET}
-[ ${CYAN}Imported Command File${RESET}  ]: ${YELLOW}${IOC_IMPORTS['command-file']}${RESET}
+    echo "[ ${CYAN}Conf File${RESET}              ]: ${YELLOW}`basename ${MD_DEFAULT['conf-file']} 2> /dev/null`${RESET}
+[ ${CYAN}Log File${RESET}               ]: ${YELLOW}`basename ${MD_DEFAULT['log-file']} 2> /dev/null`${RESET}
+[ ${CYAN}Dagger File${RESET}            ]: ${YELLOW}`basename ${MD_DEFAULT['dgr-file']} 2> /dev/null`${RESET}
+[ ${CYAN}Temporary File${RESET}         ]: ${YELLOW}`basename ${MD_DEFAULT['tmp-file']} 2> /dev/null`${RESET}
+[ ${CYAN}Default Command File${RESET}   ]: ${YELLOW}`basename ${MD_DEFAULT['cmd-file']} 2> /dev/null`${RESET}
+[ ${CYAN}Imported Command File${RESET}  ]: ${YELLOW}`basename ${IOC_IMPORTS['command-file']} 2> /dev/null`${RESET}
 [ ${CYAN}File Editor${RESET}            ]: ${MAGENTA}${MD_DEFAULT['file-editor']}${RESET}
 [ ${CYAN}Log Lines${RESET}              ]: ${WHITE}${MD_DEFAULT['log-lines']}${RESET}
 [ ${CYAN}PATH Directory${RESET}         ]: ${BLUE}${MD_DEFAULT['path-dir']}${RESET}
@@ -53,9 +58,10 @@ function display_ioc_settings () {
 [ ${CYAN}Connection Type${RESET}        ]: ${MAGENTA}${MD_DEFAULT['conn-type']}${RESET}
 [ ${CYAN}Connection Details${RESET}     ]: ${MAGENTA}${MD_DEFAULT['conn-details']}${RESET}
 [ ${CYAN}Connection Timeout${RESET}     ]: ${WHITE}${MD_DEFAULT['conn-timeout']}${RESET}
-[ ${CYAN}Setup PATH${RESET}             ]: ${MD_DEFAULT['setup-path']}
 [ ${CYAN}Command${RESET}                ]: ${MAGENTA}${MD_DEFAULT['command']}${RESET}
-[ ${CYAN}Safety${RESET}                 ]: $MD_SAFETY
+[ ${CYAN}Setup PATH${RESET}             ]: `format_flag_colors ${MD_DEFAULT['setup-path']}`
+[ ${CYAN}Safety${RESET}                 ]: `format_flag_colors $MD_SAFETY`
+[ ${CYAN}SUDO${RESET}                   ]: `format_flag_colors ${MD_DEFAULT['sudo-flag']}`
 " | column
     echo; return 0
 }

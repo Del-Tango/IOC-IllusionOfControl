@@ -4,6 +4,64 @@
 #
 # ACTIONS
 
+function action_set_sudo_off() {
+    echo; fetch_ultimatum_from_user \
+        "${YELLOW}Are you sure about this? Y/N${RESET}"
+    if [ $? -ne 0 ]; then
+        echo; info_msg "Aborting action."
+        return 0
+    fi
+    set_sudo_flag 'off'
+    local EXIT_CODE=$?
+    echo; if [ $EXIT_CODE -ne 0 ]; then
+        nok_msg "Something went wrong."\
+            "Could not set (${RED}${IOC_SCRIPT_NAME}${RESET}) SUDO"\
+            "to (${RED}OFF${RESET})."
+    else
+        ok_msg "Succesfully set (${BLUE}${IOC_SCRIPT_NAME}${RESET}) SUDO"\
+            "to (${RED}OFF${RESET})."
+    fi
+    return $EXIT_CODE
+}
+
+function action_set_sudo_on() {
+    echo; fetch_ultimatum_from_user \
+        "${YELLOW}Are you sure about this? Y/N${RESET}"
+    if [ $? -ne 0 ]; then
+        echo; info_msg "Aborting action."
+        return 0
+    fi
+    set_sudo_flag 'on'
+    local EXIT_CODE=$?
+    echo; if [ $EXIT_CODE -ne 0 ]; then
+        nok_msg "Something went wrong."\
+            "Could not set (${RED}${IOC_SCRIPT_NAME}${RESET}) SUDO"\
+            "to (${RED}ON${RESET})."
+    else
+        ok_msg "Succesfully set (${BLUE}${IOC_SCRIPT_NAME}${RESET}) SUDO"\
+            "to (${GREEN}ON${RESET})."
+    fi
+    return $EXIT_CODE
+}
+
+function action_set_sudo_flag() {
+    echo; case "${MD_DEFAULT['sudo-flag']}" in
+        'on'|'On'|'ON')
+            info_msg "SUDO is (${GREEN}ON${RESET}), switching to (${RED}OFF${RESET}) -"
+            action_set_sudo_off
+            ;;
+        'off'|'Off'|'OFF')
+            info_msg "SUDO is (${RED}OFF${RESET}), switching to (${GREEN}ON${RESET}) -"
+            action_set_sudo_on
+            ;;
+        *)
+            info_msg "SUDO flag not set, switching to (${GREEN}ON${RESET}) -"
+            action_set_sudo_off
+            ;;
+    esac
+    return $?
+}
+
 function action_start_ioc_assault () {
     ADDR=`fetch_remote_address_from_connection_details "${MD_DEFAULT['conn-details']}"`
     PORT=`fetch_remote_port_from_connection_details "${MD_DEFAULT['conn-details']}"`

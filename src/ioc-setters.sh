@@ -58,6 +58,17 @@ function set_ioc_connection_details () {
     return 0
 }
 
+function set_sudo_flag () {
+    local FLAG="$1"
+    check_item_in_set "$FLAG" "on" "off"
+    if [ $? -ne 0 ]; then
+        error_msg "Invalid flag value (${RED}$FLAG${RESET})."
+        return 1
+    fi
+    MD_DEFAULT['sudo-flag']="$FLAG"
+    return 0
+}
+
 function set_ioc_path_setup_flag () {
     local FLAG="$1"
     check_item_in_set "$FLAG" "on" "off"
