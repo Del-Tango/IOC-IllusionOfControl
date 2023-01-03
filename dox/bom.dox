@@ -1,0 +1,45 @@
+#!/bin/bash
+#
+# Excellent Regards, the Alveare Solutions #!/Society -x
+#
+# Action Bills of Materials
+
+cat <<EOF
+   ____________________________________________________________________________
+
+    *            *           *  Illusion Of Control *           *            *
+   ____________________________________________________v1.1Cloak&Dagger________
+               Excellent Regards, the Alveare Solutions #!/Society -x
+
+    [ BOM ]: Action bills of materials -
+
+    iocvcdsio      ,Start-IOC-Assault        ,(*) -> (1) -> (1 + y)
+    iocvcdis       ,Interactive-Session      ,(*) -> (1) -> (2)
+    iocvcdobd      ,Open-Backdoor            ,(*) -> (1) -> (3)
+    iocvcddt       ,Display-Tail             ,(*) -> (2) -> (1)
+    iocvcddh       ,Display-Head             ,(*) -> (2) -> (2)
+    iocvcddm       ,Display-More             ,(*) -> (2) -> (3)
+    iocvcdcl       ,Clear-Log                ,(*) -> (2) -> (4)
+    iocvcdsson     ,Set-Safety-ON            ,(*) -> (3) -> (1 + y)
+    iocvcdssof     ,Set-Safety-OFF           ,(*) -> (3) -> (2 + y)
+    iocvcdssudo    ,Set-SUDO-Flag            ,(*) -> (3) -> (3 + y)
+    iocvcdstfl     ,Set-Temporary-File       ,(*) -> (3) -> (4 + <file-path>)
+    iocvcdslfl     ,Set-Log-File             ,(*) -> (3) -> (5 + <file-path>)
+    iocvcdsll      ,Set-Log-Lines            ,(*) -> (3) -> (6 + <number-of-lines>)
+    iocvcdsfe      ,Set-File-Editor          ,(*) -> (3) -> (7 + <editor-name>)
+    iocvcdscmd     ,Set-Command              ,(*) -> (3) -> (8 + <system-command>)
+    iocvcdst       ,Set-Target               ,(*) -> (3) -> (9) -> (1|2)
+    iocvcdsdfl     ,Set-Dagger-File          ,(*) -> (3) -> (10 + <file-path>)
+    iocvcdsct      ,Set-Connection-Type      ,(*) -> (3) -> (11) -> (1|2)
+    iocvcdscd      ,Set-Connection-Details   ,(*) -> (3) -> (12 + <port> + <address> + <user> + <password>)
+    iocvcdsps      ,Set-PATH-Setup           ,(*) -> (3) -> (13 + y)
+    iocvcdscnxt    ,Set-Connection-Timeout   ,(*) -> (3) -> (14 + <seconds>)
+    iocvcdso       ,Set-Order                ,(*) -> (3) -> (15) -> (1|2)
+    iocvcdsp       ,Set-PATH                 ,(*) -> (3) -> (16 + <dir-path>)
+    iocvcdicc      ,Import-CMD-Cloaks        ,(*) -> (3) -> (17 + <file-path>)
+    iocvcdecc      ,Edit-CMD-Cloaks          ,(*) -> (3) -> (18)
+    iocvcdidep     ,Install-Dependencies     ,(*) -> (3) -> (19 + y)
+
+EOF
+
+exit $?

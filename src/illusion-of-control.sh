@@ -1204,6 +1204,7 @@ clear
 
 display_banner
 init_command_cloak_and_dagger
+
 exit $?
 
 # CODE DUMP
